@@ -8,6 +8,9 @@ const app=express();
 const server=http.createServer(app);
 const io=new Server(server,{maxHttpBufferSize:15*1024*1024});
 
+app.get("/",(req,res)=>res.sendFile(path.join(__dirname,"index.html")));
+app.get("/manifest.json",(req,res)=>res.sendFile(path.join(__dirname,"manifest.json")));
+app.get("/sw.js",(req,res)=>res.sendFile(path.join(__dirname,"sw.js")));
 app.use(express.static(path.join(__dirname,"public")));
 
 const rooms=new Map(); // roomCode -> {users:Set, messages:[]}
