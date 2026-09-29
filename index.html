@@ -1,0 +1,35 @@
+<!doctype html>
+<html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sngi Chat</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#e9eef1;font-family:Arial}.app{max-width:520px;height:100vh;margin:auto;background:#fff;display:flex;flex-direction:column}
+header{background:#075e54;color:#fff;padding:13px 16px}.title{font-weight:bold;font-size:18px}.sub{font-size:12px;opacity:.85}
+#setup{padding:20px}.card{background:#f6f7f8;padding:18px;border-radius:14px}.row{display:flex;gap:8px;margin-top:10px}input{padding:13px;border:1px solid #ccc;border-radius:10px;flex:1}button{padding:12px 15px;border:0;border-radius:10px;background:#128c7e;color:#fff;font-weight:bold}
+#chat{display:none;flex:1;flex-direction:column}#messages{flex:1;overflow:auto;padding:14px;background:#e5ddd5}.msg{max-width:82%;margin:7px 0;padding:8px 10px;border-radius:10px;background:#fff;box-shadow:0 1px 1px #0002;position:relative}.mine{margin-left:auto;background:#dcf8c6}.msg img{max-width:100%;border-radius:8px}.meta{font-size:10px;color:#667;text-align:right;margin-top:4px}.del{border:0;background:transparent;color:#777;padding:2px;float:right}.composer{display:flex;gap:7px;padding:8px;background:#f0f0f0}.composer input{border:0;border-radius:22px}.attach{padding:12px;font-size:20px}
+</style></head><body><div class="app">
+<header><div class="title">Sngi Chat</div><div class="sub" id="status">Private 2-person messenger</div></header>
+<div id="setup"><div class="card"><b>Create a private chat</b><button style="width:100%;margin-top:12px" id="create">Create pairing code</button><div style="text-align:center;margin:12px">or</div><input id="code" placeholder="Enter partner's code"><button style="width:100%;margin-top:10px" id="join">Join chat</button><p id="err"></p></div></div>
+<div id="chat"><div id="messages"></div><div class="composer"><label class="attach">📎<input id="file" type="file" accept="image/*" hidden></label><input id="text" placeholder="Message..."><button id="send">➤</button></div></div>
+</div>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const s=io(), setup=document.getElementById('setup'),chat=document.getElementById('chat'),box=document.getElementById('messages'),status=document.getElementById('status');
+let myId=null;
+function enter(room,history=[]){setup.style.display='none';chat.style.display='flex';status.textContent='Pairing code: '+room;history.forEach(add)}
+function add(m){const d=document.createElement('div');d.className='msg '+(m.sender===s.id?'mine':'');d.dataset.id=m.id;
+if(m.deleted){d.textContent='This message was deleted';}
+else if(m.type==='photo'){const im=document.createElement('img');im.src=m.data;d.append(im);}
+else d.append(document.createTextNode(m.data));
+const meta=document.createElement('div');meta.className='meta';meta.textContent=new Date(m.time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+if(m.sender===s.id&&!m.deleted){const b=document.createElement('button');b.className='del';b.textContent='🗑';b.onclick=()=>s.emit('delete_for_both',m.id);d.prepend(b)}
+d.append(meta);box.append(d);box.scrollTop=box.scrollHeight}
+s.on('connect',()=>myId=s.id);s.on('room_created',x=>{alert('Your pairing code is: '+x.room+'\\nSend this code to the other person.');enter(x.room)});
+s.on('joined',x=>enter(x.room,x.messages));s.on('message',add);
+s.on('message_deleted',x=>{const d=document.querySelector(`[data-id="${x.id}"]`);if(d){d.innerHTML='This message was deleted';const m=document.createElement('div');m.className='meta';m.textContent='deleted for both';d.append(m)}});
+s.on('partner_status',x=>status.textContent=x.online?'Partner online':'Partner offline');
+s.on('error_message',x=>document.getElementById('err').textContent=x);
+document.getElementById('create').onclick=()=>s.emit('create_room');
+document.getElementById('join').onclick=()=>s.emit('join_room',document.getElementById('code').value);
+function send(){const i=document.getElementById('text'),v=i.value.trim();if(v){s.emit('message',{type:'text',data:v});i.value=''}}
+document.getElementById('send').onclick=send;document.getElementById('text').onkeydown=e=>{if(e.key==='Enter')send()};
+document.getElementById('file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>s.emit('message',{type:'photo',data:r.result});r.readAsDataURL(f)};
+</script></body></html>
