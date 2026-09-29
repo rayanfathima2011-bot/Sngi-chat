@@ -1,0 +1,9 @@
+{
+  "name":"Sngi Chat",
+  "short_name":"Sngi Chat",
+  "start_url":"/",
+  "display":"standalone",
+  "background_color":"#e9eef1",
+  "theme_color":"#075e54",
+  "description":"Private two-person messenger"
+}
